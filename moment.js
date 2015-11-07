@@ -143,9 +143,9 @@ function findPattern(time) {
     if (time.hours !== 0) {
         if (time.hours % 10 === 1) {
             str += '%HH час ';
-        } else if (time.hours % 10 === 2 && time.hours != 12 ||
-                 time.hours % 10 === 3 && time.hours != 13 ||
-                 time.hours % 10 === 4 && time.hours != 14) {
+        } else if (time.hours % 10 === 2 && time.hours !== 12 ||
+                 time.hours % 10 === 3 && time.hours !== 13 ||
+                 time.hours % 10 === 4 && time.hours !== 14) {
             str += '%HH часа ';
         } else {
             str += '%HH часов ';
@@ -154,9 +154,9 @@ function findPattern(time) {
     if (time.minutes !== 0) {
         if (time.minutes % 10 === 1) {
             str += '%MM минута ';
-        } else if (time.minutes % 10 === 2 && time.minutes != 12 ||
-                 time.minutes % 10 === 3 && time.minutes != 13 ||
-                 time.minutes % 10 === 4 && time.minutes != 14) {
+        } else if (time.minutes % 10 === 2 && time.minutes !== 12 ||
+                 time.minutes % 10 === 3 && time.minutes !== 13 ||
+                 time.minutes % 10 === 4 && time.minutes !== 14) {
             str += '%MM минуты ';
         } else {
             str += '%MM минут ';
