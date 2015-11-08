@@ -1,5 +1,5 @@
 'use strict';
-
+var daysOfWeek = ['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'];
 var moment = require('./moment');
 
 // Выбирает подходящий ближайший момент начала ограбления
@@ -33,7 +33,6 @@ module.exports.getStatus = function (moment, robberyMoment) {
 
 
 function parseDateToUTC(str) {
-    var daysOfWeek = ['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'];
     var date = {};
     var dayOfWeek = daysOfWeek.indexOf(str.slice(0, 2));
     var timezone = parseInt(str.slice(-2));
@@ -51,9 +50,8 @@ function parseDateToUTC(str) {
 }
 
 function bankTimeInMinutes(workingHours) {
-    var daysOfWeek = ['ПН', 'ВТ', 'СР'];
     var bankTimes = [];
-    for (var i = 0; i < daysOfWeek.length; i++) {
+    for (var i = 0; i < 3; i++) {
         var newTimeObject = {};
         newTimeObject.from = takeTimeInMinutesUTC(daysOfWeek[i] + ' ' + workingHours.from);
         newTimeObject.to = takeTimeInMinutesUTC(daysOfWeek[i] + ' ' + workingHours.to);
@@ -84,7 +82,6 @@ function takeTimeInMinutesUTC(str) {
 
 function takeUTCTimeFromMinutes(minutes) {
     var str = '';
-    var daysOfWeek = ['ПН', 'ВТ', 'СР'];
     var day = Math.floor(minutes / (24 * 60));
     minutes -= day * 24 * 60;
     var hours = Math.floor(minutes / 60);
