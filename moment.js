@@ -128,9 +128,9 @@ function findPattern(time) {
         str += 'остался';
     } else if (time.days === 0 && time.hours === 0 &&
             (time.minutes % 10 === 1 && time.minutes !== 11)) {
-        str += ' осталась';
+        str += 'осталась';
     } else {
-        str += ' осталось';
+        str += 'осталось';
     }
     str += pluralize(time.days, '%DD', ['день', 'дня', 'дней']);
     str += pluralize(time.hours, '%HH', ['час', 'часа', 'часов']);

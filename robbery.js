@@ -1,5 +1,5 @@
 'use strict';
-var daysOfWeek = ['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'];
+var daysOfWeek = ['ВС','ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ'];
 var moment = require('./moment');
 
 // Выбирает подходящий ближайший момент начала ограбления
@@ -51,7 +51,7 @@ function parseDateToUTC(str) {
 
 function bankTimeInMinutes(workingHours) {
     var bankTimes = [];
-    for (var i = 0; i < 3; i++) {
+    for (var i = 1; i < 4; i++) {
         var newTimeObject = {};
         newTimeObject.from = takeTimeInMinutesUTC(daysOfWeek[i] + ' ' + workingHours.from);
         newTimeObject.to = takeTimeInMinutesUTC(daysOfWeek[i] + ' ' + workingHours.to);
@@ -104,21 +104,22 @@ function reversTime(dateInfo) {
 }
 
 function reversTimeArray(personTime) {
-    var maxTime = takeTimeInMinutesUTC('ПТ 00:00+0');
+    var maxTime = takeTimeInMinutesUTC('ЧТ 00:00+0');
+    var minTime = takeTimeInMinutesUTC('ВС 00:00+0');
     if (personTime.length === 0) {
         return [{
-                    from: 0,
+                    from: minTime,
                     to: maxTime
                 }];
     }
     var timeObjectArray = [];
     var i = 0;
     var first = {
-        from: 0,
+        from: minTime,
         to: personTime[i].from
     };
     timeObjectArray.push(first);
-    for (i = 1; i < personTime.length - 1; i++) {
+    for (i = 0; i < personTime.length - 1; i++) {
         var time = {
             from: personTime[i].to,
             to: personTime[i + 1].from
