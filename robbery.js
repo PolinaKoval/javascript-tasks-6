@@ -41,6 +41,7 @@ function parseDateToUTC(str) {
     var min = parseInt(str.slice(6, 8));
     hours -= timezone;
     if (hours < 0) {
+        hours = 24 + hours;
         dayOfWeek -= 1;
     }
     date.day = dayOfWeek;
@@ -56,6 +57,9 @@ function bankTimeInMinutes(workingHours) {
         var newTimeObject = {};
         newTimeObject.from = takeTimeInMinutesUTC(daysOfWeek[i] + ' ' + workingHours.from);
         newTimeObject.to = takeTimeInMinutesUTC(daysOfWeek[i] + ' ' + workingHours.to);
+        if (newTimeObject.from > newTimeObject.to) {
+            newTimeObject.to += 24 * 60;
+        }
         bankTimes.push(newTimeObject);
     };
     return bankTimes;
@@ -103,6 +107,13 @@ function reversTime(dateInfo) {
 }
 
 function reversTimeArray(personTime) {
+    var maxTime = takeTimeInMinutesUTC('ПТ 00:00+0');
+    if (personTime.length === 0) {
+        return [{
+                    from: 0,
+                    to: maxTime
+                }];
+    }
     var timeObjectArray = [];
     var i = 0;
     var first = {
@@ -117,7 +128,6 @@ function reversTimeArray(personTime) {
         };
         timeObjectArray.push(time);
     }
-    var maxTime = takeTimeInMinutesUTC('ПТ 00:00+0');
     var last = {
         from: personTime[i].to,
         to: maxTime
@@ -131,12 +141,13 @@ function findIntersection(dateInfo, minDuration) {
     for (var person in dateInfo) {
         periods = crossTimeArray(periods, dateInfo[person]);
     }
+    var correctPeriods = [];
     for (var i = 0; i < periods.length; i++) {
-        if ((periods[i].to - periods[i].from) < minDuration) {
-            periods.splice(i, i + 1);
+        if ((periods[i].to - periods[i].from) >= minDuration) {
+            correctPeriods.push(periods[i]);
         };
     };
-    return periods[0];
+    return correctPeriods[0];
 }
 
 function crossTimeArray(first, second) {

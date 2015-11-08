@@ -100,6 +100,7 @@ function parseDateToUTC(str, DayInIndex) {
     var min = parseInt(str.slice(6, 8));
     hours -= timezone;
     if (hours < 0) {
+        hours = 24 + hours;
         dayOfWeek -= 1;
     }
     date.day = dayOfWeek;
@@ -108,15 +109,15 @@ function parseDateToUTC(str, DayInIndex) {
     return date;
 }
 
-function takaTimeFromMinutes(_minutes) {
-    var _days = Math.floor(_minutes / (24 * 60));
-    _minutes -= _days * 24 * 60;
-    var _hours = Math.floor(_minutes / 60);
-    _minutes -= 60 * _hours;
+function takaTimeFromMinutes(minutes) {
+    var days = Math.floor(minutes / (24 * 60));
+    minutes -= days * 24 * 60;
+    var hours = Math.floor(minutes / 60);
+    minutes -= 60 * hours;
     var time = {
-        days: _days,
-        hours: _hours,
-        minutes: _minutes
+        days: days,
+        hours: hours,
+        minutes: minutes
     };
     return time;
 }
@@ -124,42 +125,30 @@ function takaTimeFromMinutes(_minutes) {
 function findPattern(time) {
     var str = 'До ограбления ';
     if (time.days % 10 === 1 || (time.hours % 10 === 1 && time.hours !== 11)) {
-        str += 'остался ';
+        str += 'остался';
     } else if (time.days === 0 && time.hours === 0 &&
             (time.minutes % 10 === 1 && time.minutes !== 11)) {
-        str += 'осталась ';
+        str += ' осталась';
     } else {
-        str += 'осталось ';
+        str += ' осталось';
     }
-    if (time.days !== 0) {
-        if (time.days === 1) {
-            str += '%DD день ';
-        } else if (time.days === 2 || time.days === 3 || time.days === 4) {
-            str += '%DD дня ';
+    str += pluralize(time.days, '%DD', ['день', 'дня', 'дней']);
+    str += pluralize(time.hours, '%HH', ['час', 'часа', 'часов']);
+    str += pluralize(time.minutes, '%MM', ['минута', 'минуты', 'минут']);
+    return str + '.';
+}
+
+function pluralize(value, type, patterns) {
+    var str = '';
+    if (value !== 0) {
+        if (value % 10 === 1) {
+            str += ' ' + type + ' ' + patterns[0];
+        } else if (value % 10 === 2 && value !== 12 ||
+                 value % 10 === 3 && value !== 13 ||
+                 value % 10 === 4 && value !== 14) {
+            str += ' ' + type + ' ' + patterns[1];
         } else {
-            str += '%DD дней ';
-        }
-    }
-    if (time.hours !== 0) {
-        if (time.hours % 10 === 1) {
-            str += '%HH час ';
-        } else if (time.hours % 10 === 2 && time.hours !== 12 ||
-                 time.hours % 10 === 3 && time.hours !== 13 ||
-                 time.hours % 10 === 4 && time.hours !== 14) {
-            str += '%HH часа ';
-        } else {
-            str += '%HH часов ';
-        }
-    }
-    if (time.minutes !== 0) {
-        if (time.minutes % 10 === 1) {
-            str += '%MM минута ';
-        } else if (time.minutes % 10 === 2 && time.minutes !== 12 ||
-                 time.minutes % 10 === 3 && time.minutes !== 13 ||
-                 time.minutes % 10 === 4 && time.minutes !== 14) {
-            str += '%MM минуты ';
-        } else {
-            str += '%MM минут ';
+            str += ' ' + type + ' ' + patterns[2];
         }
     }
     return str;
