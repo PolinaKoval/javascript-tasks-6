@@ -51,7 +51,7 @@ function parseDateToUTC(str) {
 
 function bankTimeInMinutes(workingHours) {
     var bankTimes = [];
-    for (var i = 1; i < 4; i++) {
+    for (var i = 0; i < 4; i++) {
         var newTimeObject = {};
         newTimeObject.from = takeTimeInMinutesUTC(daysOfWeek[i] + ' ' + workingHours.from);
         newTimeObject.to = takeTimeInMinutesUTC(daysOfWeek[i] + ' ' + workingHours.to);
@@ -105,7 +105,7 @@ function reversTime(dateInfo) {
 
 function reversTimeArray(personTime) {
     var maxTime = takeTimeInMinutesUTC('ЧТ 00:00+0');
-    var minTime = takeTimeInMinutesUTC('ВС 00:00+0');
+    var minTime = takeTimeInMinutesUTC('ПН 00:00+0');
     if (personTime.length === 0) {
         return [{
                     from: minTime,
