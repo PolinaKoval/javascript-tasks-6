@@ -11,13 +11,11 @@ module.exports.getAppropriateMoment = function (json, minDuration, workingHours)
     freeTime.bank = bankTimeInMinutes(workingHours);
     var intersection = findIntersection(freeTime, minDuration);
     if (!intersection) {
-        console.log('Время не найдено');
         return appropriateMoment;
     }
-    var robberyTime = takeUTCTimeFromMinutes(intersection.from);
-    appropriateMoment.date = robberyTime;
-    console.log('Найденное время UTC', robberyTime);
     var bankTimezone = parseInt(workingHours.from.slice(-2));
+    var robberyTime = takeStringTimeFromMinutes(intersection.from);
+    appropriateMoment.date = robberyTime;
     appropriateMoment.timezone = bankTimezone;
     return appropriateMoment;
 };
@@ -31,30 +29,19 @@ module.exports.getStatus = function (moment, robberyMoment) {
     return 'Ограбление уже идёт!';
 };
 
-
-function parseDateToUTC(str) {
-    var date = {};
-    var dayOfWeek = daysOfWeek.indexOf(str.slice(0, 2));
-    var timezone = parseInt(str.slice(-2));
-    var hours = parseInt(str.slice(3, 5));
-    var min = parseInt(str.slice(6, 8));
-    hours -= timezone;
-    if (hours < 0) {
-        hours = 24 + hours;
-        dayOfWeek -= 1;
-    }
-    date.day = dayOfWeek;
-    date.hours = hours;
-    date.minutes = min;
-    return date;
+function getTimeObject(from, to) {
+    var newTimeObject = {};
+    newTimeObject.from = from;
+    newTimeObject.to = to;
+    return newTimeObject;
 }
 
 function bankTimeInMinutes(workingHours) {
     var bankTimes = [];
     for (var i = 0; i < 4; i++) {
-        var newTimeObject = {};
-        newTimeObject.from = takeTimeInMinutesUTC(daysOfWeek[i] + ' ' + workingHours.from);
-        newTimeObject.to = takeTimeInMinutesUTC(daysOfWeek[i] + ' ' + workingHours.to);
+        var from = moment.takeTimeInMinutesUTC(daysOfWeek[i] + ' ' + workingHours.from, false);
+        var to = moment.takeTimeInMinutesUTC(daysOfWeek[i] + ' ' + workingHours.to, false);
+        var newTimeObject = getTimeObject(from, to);
         if (newTimeObject.from > newTimeObject.to) {
             newTimeObject.to += 24 * 60;
         }
@@ -66,34 +53,17 @@ function bankTimeInMinutes(workingHours) {
 function convertTimeObjectToMinutesUTC(data) {
     for (var person in data) {
         for (var period in data[person]) {
-            data[person][period].from = takeTimeInMinutesUTC(data[person][period].from);
-            data[person][period].to = takeTimeInMinutesUTC(data[person][period].to);
+            var from = moment.takeTimeInMinutesUTC(data[person][period].from, false);
+            var to = moment.takeTimeInMinutesUTC(data[person][period].to, false);
+            data[person][period] = getTimeObject(from, to);
         }
     }
     return data;
 }
 
-function takeTimeInMinutesUTC(str) {
-    var date = parseDateToUTC(str);
-    var hours = date.day * 24 + date.hours;
-    var minutes = hours * 60 + date.minutes;
-    return minutes;
-}
-
-function takeUTCTimeFromMinutes(minutes) {
-    var str = '';
-    var day = Math.floor(minutes / (24 * 60));
-    minutes -= day * 24 * 60;
-    var hours = Math.floor(minutes / 60);
-    minutes -= 60 * hours;
-    if (hours < 10) {
-        hours = '0' + hours;
-    }
-    if (minutes < 10) {
-        minutes = '0' + minutes;
-    }
-    str += daysOfWeek[day] + ' ' + hours + ':' + minutes + '+0';
-    return str;
+function takeStringTimeFromMinutes(minutes) {
+    var date = moment.takeUTCTimeFromMinutes(minutes);
+    return moment.toStringUTC(date, false);
 }
 
 function reversTime(dateInfo) {
@@ -104,32 +74,20 @@ function reversTime(dateInfo) {
 }
 
 function reversTimeArray(personTime) {
-    var maxTime = takeTimeInMinutesUTC('ЧТ 00:00+0');
-    var minTime = takeTimeInMinutesUTC('ПН 00:00+0');
+    var maxTime = moment.takeTimeInMinutesUTC('ЧТ 00:00+0', false);
+    var minTime = moment.takeTimeInMinutesUTC('ПН 00:00+0', false);
     if (personTime.length === 0) {
-        return [{
-                    from: minTime,
-                    to: maxTime
-                }];
+        return getTimeObject(minTime, maxTime);
     }
     var timeObjectArray = [];
     var i = 0;
-    var first = {
-        from: minTime,
-        to: personTime[i].from
-    };
+    var first = getTimeObject(minTime, personTime[i].from);
     timeObjectArray.push(first);
     for (i = 0; i < personTime.length - 1; i++) {
-        var time = {
-            from: personTime[i].to,
-            to: personTime[i + 1].from
-        };
+        var time = getTimeObject(personTime[i].to, personTime[i + 1].from);
         timeObjectArray.push(time);
     }
-    var last = {
-        from: personTime[i].to,
-        to: maxTime
-    };
+    var last = getTimeObject(personTime[i].to, maxTime);
     timeObjectArray.push(last);
     return timeObjectArray;
 }
@@ -153,10 +111,9 @@ function crossTimeArray(first, second) {
     for (var i = 0; i < first.length; i++) {
         for (var j = 0; j < second.length; j++) {
             if (first[i].from <= second[j].to && first[i].to >= second[j].from) {
-                var newPeriod = {};
-                newPeriod.from = Math.max(first[i].from, second[j].from);
-                newPeriod.to = Math.min(first[i].to, second[j].to);
-                resultArray.push(newPeriod);
+                var from = Math.max(first[i].from, second[j].from);
+                var to = Math.min(first[i].to, second[j].to);
+                resultArray.push(getTimeObject(from, to));
             }
         }
     };

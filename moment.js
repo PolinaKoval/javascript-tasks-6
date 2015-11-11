@@ -1,23 +1,12 @@
 'use strict';
-
+var daysOfWeek = ['ВС','ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ'];
 module.exports = function () {
-    var daysOfWeek = ['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'];
     return {
         set date (str) {
             this._date = parseDateToUTC(str);
         },
         get date () {
-            var str = '';
-            var hours = this._date.hours;
-            var minutes = this._date.minutes;
-            if (hours < 10) {
-                hours = '0' + hours;
-            }
-            if (minutes < 10) {
-                minutes = '0' + minutes;
-            }
-            str += '0' + this._date.day + ' ' + hours + ':' + minutes + '+0';
-            return str;
+            return toStringUTC(this._date, true);
         },
 
         // Здесь как-то хранится дата ;)
@@ -28,28 +17,15 @@ module.exports = function () {
 
         // Выводит дату в переданном формате
         format: function (pattern) {
-            var dayIndex = this._date.day;
-            var hours = this._date.hours + this.timezone;
+            var correctTimezone = timezoneFormat(this._date.day, this._date.hours, this.timezone);
+            var dayIndex = correctTimezone.dayIndex;
+            var hours = correctTimezone.hours;
             var minutes = this._date.minutes;
-            if (hours > 23) {
-                dayIndex += 1;
-            }
-            if (hours < 0) {
-                hours = 24 + hours;
-                dayIndex -= 1;
-                if (dayIndex < 0) {
-                    dayIndex = daysOfWeek.length - 1;
-                }
-            }
             var day = daysOfWeek[dayIndex];
-            if (hours < 10) {
-                hours = '0' + hours;
-            }
-            if (minutes < 10) {
-                minutes = '0' + minutes;
-            }
+            hours = formatTime(hours);
+            minutes = formatTime(minutes);
             var time = {
-                days: day,
+                day: day,
                 hours: hours,
                 minutes: minutes
             };
@@ -59,36 +35,77 @@ module.exports = function () {
         // Возвращает кол-во времени между текущей датой и переданной `moment`
         // в человекопонятном виде
         fromMoment: function (moment) {
-            var thisTimeInMinutes = takeTimeInMinutesUTC(this.date);
-            var momentInMinutes = takeTimeInMinutesUTC(moment.date);
+            var thisTimeInMinutes = takeTimeInMinutesUTC(this.date, true);
+            var momentInMinutes = takeTimeInMinutesUTC(moment.date, true);
             var difference = thisTimeInMinutes - momentInMinutes;
             if (difference < 0) {
                 return 'Ограбление уже идет';
             }
-            var differenceObject = takaTimeFromMinutes(difference);
+            var differenceObject = takeUTCTimeFromMinutes(difference);
             var correctPattern = findPattern(differenceObject);
             return replaceInPattern(correctPattern, differenceObject);
         }
     };
 };
 
+function toStringUTC(date, useIndexOfDay) {
+    var str = '';
+    var hours = date.hours;
+    var minutes = date.minutes;
+    hours = formatTime(hours);
+    minutes = formatTime(minutes);
+    if (useIndexOfDay) {
+        str += '0' + date.day;
+    } else {
+        str = daysOfWeek[date.day];
+    }
+    str += ' ' + hours + ':' + minutes + '+0';
+    return str;
+}
+module.exports.toStringUTC = toStringUTC;
 
-function replaceInPattern(pattern, time) {
-    pattern = pattern.replace(/%DD/g, time.days);
-    pattern = pattern.replace(/%HH/g, time.hours);
-    pattern = pattern.replace(/%MM/g, time.minutes);
-    return pattern;
+function timezoneFormat(dayIndex, hours, timezone) {
+    hours += timezone;
+    if (hours > 23) {
+        dayIndex += 1;
+    }
+    if (hours < 0) {
+        hours = 24 + hours;
+        dayIndex -= 1;
+        if (dayIndex < 0) {
+            dayIndex = daysOfWeek.length - 1;
+        }
+    }
+    return {
+        dayIndex: dayIndex,
+        hours: hours
+    };
 }
 
-function takeTimeInMinutesUTC(str) {
-    var date = parseDateToUTC(str, true);
+function formatTime(value) {
+    if (value < 10) {
+        return '0' + value;
+    }
+    return value;
+}
+module.exports.formatTime = formatTime;
+
+function replaceInPattern(pattern, time) {
+    return pattern.replace(/%DD/g, time.day)
+                  .replace(/%HH/g, time.hours)
+                  .replace(/%MM/g, time.minutes);
+}
+
+function takeTimeInMinutesUTC(str, dayIndex) {
+    var date = parseDateToUTC(str, dayIndex);
     var hours = date.day * 24 + date.hours;
     var minutes = hours * 60 + date.minutes;
     return minutes;
 };
+module.exports.takeTimeInMinutesUTC = takeTimeInMinutesUTC;
+
 
 function parseDateToUTC(str, DayInIndex) {
-    var daysOfWeek = ['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'];
     var date = {};
     if (!DayInIndex) {
         var dayOfWeek = daysOfWeek.indexOf(str.slice(0, 2));
@@ -98,58 +115,57 @@ function parseDateToUTC(str, DayInIndex) {
     var timezone = parseInt(str.slice(-2));
     var hours = parseInt(str.slice(3, 5));
     var min = parseInt(str.slice(6, 8));
-    hours -= timezone;
-    if (hours < 0) {
-        hours = 24 + hours;
-        dayOfWeek -= 1;
-    }
-    date.day = dayOfWeek;
-    date.hours = hours;
+    var correctTimezone = timezoneFormat(dayOfWeek, hours, -timezone);
+    date.day = correctTimezone.dayIndex;
+    date.hours = correctTimezone.hours;
     date.minutes = min;
     return date;
 }
+module.exports.parseDateToUTC = parseDateToUTC;
 
-function takaTimeFromMinutes(minutes) {
+function takeUTCTimeFromMinutes(minutes) {
     var days = Math.floor(minutes / (24 * 60));
     minutes -= days * 24 * 60;
     var hours = Math.floor(minutes / 60);
     minutes -= 60 * hours;
     var time = {
-        days: days,
+        day: days,
         hours: hours,
         minutes: minutes
     };
     return time;
 }
+module.exports.takeUTCTimeFromMinutes = takeUTCTimeFromMinutes;
 
 function findPattern(time) {
     var str = 'До ограбления ';
-    if (time.days % 10 === 1 || (time.hours % 10 === 1 && time.hours !== 11)) {
+    if (time.day % 10 === 1 || (time.hours % 10 === 1 && time.hours !== 11)) {
         str += 'остался';
-    } else if (time.days === 0 && time.hours === 0 &&
+    } else if (time.day === 0 && time.hours === 0 &&
             (time.minutes % 10 === 1 && time.minutes !== 11)) {
         str += 'осталась';
     } else {
         str += 'осталось';
     }
-    str += pluralize(time.days, '%DD', ['день', 'дня', 'дней']);
+    str += pluralize(time.day, '%DD', ['день', 'дня', 'дней']);
     str += pluralize(time.hours, '%HH', ['час', 'часа', 'часов']);
     str += pluralize(time.minutes, '%MM', ['минута', 'минуты', 'минут']);
     return str + '.';
 }
 
 function pluralize(value, type, patterns) {
-    var str = '';
-    if (value !== 0) {
-        if (value % 10 === 1) {
-            str += ' ' + type + ' ' + patterns[0];
-        } else if (value % 10 === 2 && value !== 12 ||
-                 value % 10 === 3 && value !== 13 ||
-                 value % 10 === 4 && value !== 14) {
-            str += ' ' + type + ' ' + patterns[1];
-        } else {
-            str += ' ' + type + ' ' + patterns[2];
-        }
+    var str = ['', type];
+    if (value === 0) {
+        return '';
     }
-    return str;
+    if (value % 10 === 1) {
+        str.push(patterns[0]);
+    } else if (value % 10 === 2 && value !== 12 ||
+             value % 10 === 3 && value !== 13 ||
+             value % 10 === 4 && value !== 14) {
+        str.push(patterns[1]);
+    } else {
+        str.push(patterns[2]);
+    }
+    return str.join(' ');
 }
