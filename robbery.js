@@ -1,11 +1,18 @@
 'use strict';
-var daysOfWeek = ['ВС','ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ'];
+var daysOfWeek = ['СБ', 'ВС','ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ'];
+var bankTimezone = 0;
 var moment = require('./moment');
 
-// Выбирает подходящий ближайший момент начала ограбления
+/** Выбирает подходящий ближайший момент начала ограбления
+ * @param {json} json информация о занятости
+ * @param {number} minDuration продолжительность ограбления
+ * @param {Object} workingHours часы работы банка
+ * @returns {Moment} момент начала ограбления
+ */
 module.exports.getAppropriateMoment = function (json, minDuration, workingHours) {
     var appropriateMoment = moment();
     var data = JSON.parse(json);
+    bankTimezone = parseInt(workingHours.from.slice(5));
     var dataInMinutes = convertTimeObjectToMinutesUTC(data);
     var freeTime = reversTime(dataInMinutes);
     freeTime.bank = bankTimeInMinutes(workingHours);
@@ -13,14 +20,17 @@ module.exports.getAppropriateMoment = function (json, minDuration, workingHours)
     if (!intersection) {
         return appropriateMoment;
     }
-    var bankTimezone = parseInt(workingHours.from.slice(-2));
     var robberyTime = takeStringTimeFromMinutes(intersection.from);
     appropriateMoment.date = robberyTime;
     appropriateMoment.timezone = bankTimezone;
     return appropriateMoment;
 };
 
-// Возвращает статус ограбления (этот метод уже готов!)
+/** Возвращает статус ограбления
+ * @param {moment} moment момент, для которого ищется статус
+ * @param {moment} robberyMoment момент ограбления
+ * @returns {string} информация о статусе
+ */
 module.exports.getStatus = function (moment, robberyMoment) {
     if (moment.date < robberyMoment.date) {
         // «До ограбления остался 1 день 6 часов 59 минут»
@@ -29,6 +39,11 @@ module.exports.getStatus = function (moment, robberyMoment) {
     return 'Ограбление уже идёт!';
 };
 
+/** Возвращает новый объект отрезка времени
+ * @param {number|string} from время начала отрезка времени
+ * @param {number|string} to время конца отрезка времени
+ * @returns {Object} объект отрезка времени
+ */
 function getTimeObject(from, to) {
     var newTimeObject = {};
     newTimeObject.from = from;
@@ -36,9 +51,13 @@ function getTimeObject(from, to) {
     return newTimeObject;
 }
 
+/** Возвращае массив с отрезками времени работы банка в минутах на каждый день
+ * @param {Object} workingHours часы работы банка
+ * @returns {Array} массив с отрезками времени работы банка в минутах на каждый день
+ */
 function bankTimeInMinutes(workingHours) {
     var bankTimes = [];
-    for (var i = 0; i < 4; i++) {
+    for (var i = 1; i < 6; i++) {
         var from = moment.takeTimeInMinutesUTC(daysOfWeek[i] + ' ' + workingHours.from, false);
         var to = moment.takeTimeInMinutesUTC(daysOfWeek[i] + ' ' + workingHours.to, false);
         var newTimeObject = getTimeObject(from, to);
@@ -50,6 +69,10 @@ function bankTimeInMinutes(workingHours) {
     return bankTimes;
 }
 
+/** Конвертирует объект с временами в стороках в объект занятости в минитах
+ * @param {Object} data объект с временами в стороках для одного или нескольких сущностей
+ * @returns {Object} объект с временами в минутах
+ */
 function convertTimeObjectToMinutesUTC(data) {
     for (var person in data) {
         for (var period in data[person]) {
@@ -61,11 +84,19 @@ function convertTimeObjectToMinutesUTC(data) {
     return data;
 }
 
+/** Конвертирует минуты в строку с временем UTC
+ * @param {number} minutes количество минут
+ * @returns {string} строка со временим UTC
+ */
 function takeStringTimeFromMinutes(minutes) {
     var date = moment.takeUTCTimeFromMinutes(minutes);
     return moment.toStringUTC(date, false);
 }
 
+/** По объектам с отрезками времени находит новые отрезки в их промежутках
+ * @param {Object} dateInfo объект с отрезками времени для одной или нескольких сущностей
+ * @returns {Object} объект с отрезками времени для одной или нескольких сущностей
+ */
 function reversTime(dateInfo) {
     for (var person in dateInfo) {
         dateInfo[person] = reversTimeArray(dateInfo[person]);
@@ -73,11 +104,15 @@ function reversTime(dateInfo) {
     return dateInfo;
 }
 
+/** По отрезками времени находит новые отрезки в их промежутках
+ * @param {Array} personTime массив с отрезками времени
+ * @returns {Array} массив с отрезками времени
+ */
 function reversTimeArray(personTime) {
-    var maxTime = moment.takeTimeInMinutesUTC('ЧТ 00:00+0', false);
-    var minTime = moment.takeTimeInMinutesUTC('ПН 00:00+0', false);
+    var maxTime = moment.takeTimeInMinutesUTC('ЧТ 00:00' + bankTimezone, false);
+    var minTime = moment.takeTimeInMinutesUTC('ПН 00:00' + bankTimezone, false);
     if (personTime.length === 0) {
-        return getTimeObject(minTime, maxTime);
+        return [getTimeObject(minTime, maxTime)];
     }
     var timeObjectArray = [];
     var i = 0;
@@ -92,6 +127,13 @@ function reversTimeArray(personTime) {
     return timeObjectArray;
 }
 
+/** По объектам с массивами отрезков времени находит их пересечение длины не меньшей minDuration
+ * @param {Object} dateInfo объект с массивами отрезков времени для одной или нескольких
+сущностей
+ * @param {number} minDuration минимальный размер пересечения
+ * @returns {Object} отрезок времени, существующий для каждой сущности
+и длины не меньшей minDuration
+ */
 function findIntersection(dateInfo, minDuration) {
     var periods = dateInfo.bank;
     for (var person in dateInfo) {
@@ -106,6 +148,11 @@ function findIntersection(dateInfo, minDuration) {
     return correctPeriods[0];
 }
 
+/** Ищет пересечения отрезков между двум массивами с отрезками
+ * @param {Array} first массив с отрезками времени
+ * @param {Array} second массив с отрезками времени
+ * @returns {Array} массив содержащий все пересечения first и second
+ */
 function crossTimeArray(first, second) {
     var resultArray = [];
     for (var i = 0; i < first.length; i++) {
