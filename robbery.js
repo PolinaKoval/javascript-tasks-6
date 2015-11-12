@@ -1,5 +1,5 @@
 'use strict';
-var daysOfWeek = ['СБ', 'ВС','ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ'];
+var DAYS_OF_WEEK = ['СБ', 'ВС','ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ'];
 var bankTimezone = 0;
 var moment = require('./moment');
 
@@ -58,8 +58,8 @@ function getTimeObject(from, to) {
 function bankTimeInMinutes(workingHours) {
     var bankTimes = [];
     for (var i = 1; i < 6; i++) {
-        var from = moment.takeTimeInMinutesUTC(daysOfWeek[i] + ' ' + workingHours.from, false);
-        var to = moment.takeTimeInMinutesUTC(daysOfWeek[i] + ' ' + workingHours.to, false);
+        var from = moment.takeTimeInMinutesUTC(DAYS_OF_WEEK[i] + ' ' + workingHours.from, false);
+        var to = moment.takeTimeInMinutesUTC(DAYS_OF_WEEK[i] + ' ' + workingHours.to, false);
         var newTimeObject = getTimeObject(from, to);
         if (newTimeObject.from > newTimeObject.to) {
             newTimeObject.to += 24 * 60;

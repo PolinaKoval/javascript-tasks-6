@@ -1,7 +1,6 @@
 'use strict';
-var daysOfWeek = ['СБ', 'ВС','ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ'];
+var DAYS_OF_WEEK = ['СБ', 'ВС','ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ'];
 /** Создает новый объект времени
- * @constructor
  * @this {Moment}
  * @returns {Moment} экземпляр объекта времени
  */
@@ -60,7 +59,7 @@ function toStringUTC(date, useIndexOfDay) {
     if (useIndexOfDay) {
         str += '0' + date.day;
     } else {
-        str = daysOfWeek[date.day];
+        str = DAYS_OF_WEEK[date.day];
     }
     str += ' ' + hours + ':' + minutes + '+0';
     return str;
@@ -84,11 +83,11 @@ function timezoneFormat(dayIndex, hours, timezone) {
         hours = 24 + hours;
         dayIndex -= 1;
         if (dayIndex < 0) {
-            dayIndex = daysOfWeek.length - 1;
+            dayIndex = DAYS_OF_WEEK.length - 1;
         }
     }
     return {
-        day: daysOfWeek[dayIndex],
+        day: DAYS_OF_WEEK[dayIndex],
         hours: hours
     };
 }
@@ -138,7 +137,7 @@ module.exports.takeTimeInMinutesUTC = takeTimeInMinutesUTC;
 function parseDateToUTC(str, dayInIndex) {
     var date = {};
     if (!dayInIndex) {
-        var dayOfWeek = daysOfWeek.indexOf(str.slice(0, 2));
+        var dayOfWeek = DAYS_OF_WEEK.indexOf(str.slice(0, 2));
     } else {
         var dayOfWeek = parseInt(str.slice(0, 2));
     }
@@ -146,7 +145,7 @@ function parseDateToUTC(str, dayInIndex) {
     var hours = parseInt(str.slice(3, 5));
     var min = parseInt(str.slice(6, 8));
     var correctTimezone = timezoneFormat(dayOfWeek, hours, -timezone);
-    date.day = daysOfWeek.indexOf(correctTimezone.day);
+    date.day = DAYS_OF_WEEK.indexOf(correctTimezone.day);
     date.hours = correctTimezone.hours;
     date.minutes = min;
     return date;
